@@ -1,4 +1,5 @@
 const express = require('express')
+const jwt = require('jsonwebtoken')
 const bodyParser = require('body-parser')
 const app = express()
 const port = 3000
@@ -26,6 +27,33 @@ con.connect()
 //GET
 
 //objets complexes
+app.get('/api/getFullFiliereByID', (req, res) => {
+	console.log('api/getFullFiliereByID')
+	var id = req.headers['id']
+	var tab = {}
+	con.query('SELECT * from filiereLangue where filiereLangueID = ?', [id],(err, rows) => {
+		if(err){ res.status(500).send('erreur id')}
+		else{
+			var resultat = Object.assign({}, rows[0])
+			tab.filiereLangueID = resultat.filiereLangueID
+			tab.code = resultat.code
+			tab.nom = resultat.nom
+
+			con.query('select * from composante where composanteID = ?',[id],(err, rows)=>{
+				tab.composante = Object.assign({}, rows[0])
+
+				con.query('SELECT cours.coursID, cours.intitule from cours INNER JOIN coursFiliereLangueLinker AS L ON cours.coursID = L.coursID INNER JOIN filiereLangue ON filiereLangue.filiereLangueID = L.filiereLangueID WHERE filiereLangue.filiereLangueID = ?',[id],(err, rows)=>{
+					tab.cours = rows.map(v => Object.assign({}, v))
+					console.log(tab)
+					res.status(200).send(tab)
+				})
+			})
+		}
+	})
+
+})
+
+
 app.get('/api/getFullCompoByID', (req, res) => {
 	console.log('api/get full compo by ID')
 	var id = req.headers['id']
