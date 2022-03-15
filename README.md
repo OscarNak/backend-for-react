@@ -1,17 +1,9 @@
 # README.md
 
-## Initialisation de NodeJs
+## Installation de Node et des paquets
 
 ```bash
-$ mkdir myapp
-$ cd myapp
-$ npm init //faire return pour chaque ligne
-```
-
-## Installation des paquets
-
-```bash
-npm install express mysql cors --save
+npm install
 ```
 
 ## Création de ton fichier de configuration
