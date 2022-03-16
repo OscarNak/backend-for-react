@@ -1,10 +1,12 @@
 const express = require('express')
 const jwt = require('jsonwebtoken')
 const bodyParser = require('body-parser')
+const cors = require('cors')
+
 const app = express()
 const port = 3000
-var cors = require('cors')
 app.use(cors())
+
 
 //import config database
 var config = require('./config.json')
@@ -27,6 +29,31 @@ con.connect()
 //GET
 
 //objets complexes
+
+app.get('/api/getFullCoursByID', (req, res) => {
+        console.log('api/getFullCoursByID')
+        var id = req.headers['id']
+        var tab = {}
+        con.query('SELECT * from cours where coursID = ?', [id],(err, rows) => {
+                if(err){ res.status(500).send('erreur id')}
+                else{
+                        var resultat = Object.assign({}, rows[0])
+                        tab.coursID = resultat.coursID
+                        tab.intitule = resultat.intitule
+
+                        con.query('select * from utilisateur INNER JOIN coursUtilisateurLinker ON utilisateur.utilisateurID = coursUtilisateurLinker.utilisateurID WHERE coursUtilisateurLinker.coursID = ?',[id],(err, rows)=>{
+                                tab.utilisateur = rows.map(v => Object.assign({}, v))
+				con.query('select * from filiereLangue INNER JOIN coursFiliereLangueLinker ON filiereLangue.filiereLangueID = coursFiliereLangueLinker.filiereLangueID WHERE coursFiliereLangueLinker.coursID = ?',[id],(err, rows)=>{
+					tab.filiere = rows.map(v => Object.assign({}, v))
+					console.log(tab)
+					res.status(200).send(tab)
+				})
+                        })
+                }
+        })
+
+})
+
 app.get('/api/getFullFiliereByID', (req, res) => {
 	console.log('api/getFullFiliereByID')
 	var id = req.headers['id']
@@ -77,6 +104,37 @@ app.get('/api/getFullCompoByID', (req, res) => {
 		}
 	})
 })
+
+//cours
+app.get('/api/getAllCours', (req, res) => {
+        console.log('api/getAllCours')
+        con.query('SELECT * from cours', (err, rows) => {
+                if(err){
+                        console.log(err)
+                        res.status(500).send('erreur')
+                }
+                else{
+
+                        rows = rows.map(v => Object.assign({}, v))
+                        res.status(200).send(rows)
+                }
+        })
+})
+
+app.get('/api/getCoursByID', (req,res) => {
+        console.log('api/getCoursByID')
+        console.log(req.headers)
+        con.query('SELECT * FROM cours  WHERE coursID = ' + req.headers['id'], (err, rows) => {
+                if(err){
+                        console.log(err)
+                }
+                else{
+                        rows = Object.assign({}, rows[0])
+                        res.status(200).send(rows)
+                }
+        })
+})
+
 
 //filiere
 app.get('/api/getAllFilieres', (req, res) => {
@@ -200,6 +258,43 @@ app.get('/api/getAllUsersByType', (req,res) => {
 })
 
 //POST
+app.post('/api/login', (req,res) => {
+	console.log('api/login')
+	console.log(req.headers)
+	var sql = `SELECT login, motDePasse AS mdp FROM utilisateur WHERE login = '${req.headers.login}' AND motDePasse = '${req.headers.mdp}'`
+
+	con.query(sql,(err, rows)=> {
+		if(err){
+			res.status(500).send(err)
+		}else{
+			var user = Object.assign({}, rows[0])
+			if(!user.login){
+				res.status(400).send(null)
+			}else{
+    				const token = jwt.sign({
+        				login: user.login,
+        				mdp: user.mdp
+    				}, config.SECRET, { expiresIn: '3 hours' })
+				res.status(200).json({access_token : token})
+			}
+		}
+	})
+})
+
+app.post('/api/setCours', (req,res) => {
+        console.log('api/setCours')
+        var T = req.headers
+        con.query('INSERT INTO cours (coursID, intitule) VALUES(?,?)',[null,T.intitule],(err, rows) => {
+                if(err){
+                        console.log(err)
+                        res.status(500).send('erreur')
+                }else{
+                        res.status(200).send('insertion réussie')
+                }
+        })
+})
+
+
 app.post('/api/setCompo', (req,res) => {
 	console.log('api/setCompo')
 	var T = req.body
@@ -242,7 +337,21 @@ app.post('/api/setFiliere', (req,res) => {
 	})
 })
 
+
 //DELETE
+
+app.delete('/api/deleteCoursByID', (req, res) => {
+        console.log('api/deleteCoursByID')
+        con.query('DELETE FROM cours WHERE coursID = ?',[req.headers.id], (err, rows) => {
+                if(err){
+                        console.log(err)
+                        res.status(500).send('suppression incorrecte')
+                }else{
+                        res.status(200).send('suppression réussie')
+                }
+        })
+})
+
 app.delete('/api/deleteFiliereByID', (req, res) => {
 	console.log('api/deleteFiliereByID')
 	con.query('DELETE FROM filiereLangue WHERE filiereLangueID = ?',[req.headers.id], (err, rows) => {
