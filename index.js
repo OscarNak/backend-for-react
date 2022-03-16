@@ -281,6 +281,31 @@ app.post('/api/login', (req,res) => {
 	})
 })
 
+
+app.post('/api/setFiliereEtLinker', (req,res) => {
+        console.log('api/setFiliereEtLinker')
+        var T = req.body
+        con.query('INSERT INTO `filiereLangue` (`filiereLangueID`, `code`, `nom`, `composanteID`) VALUES (NULL, ?,?,?)',[T.code,T.nom,T.composanteID],(err, resultat) => {
+                if(err){
+                        res.status(500).send(err)
+                }else{
+			var id = resultat.insertId
+			var test = true
+			T.cours.map(v => con.query('INSERT INTO `coursFiliereLangueLinker` (`coursID`, `filiereLangueID`) VALUES (?,?)',[v,id],(err,rows)=>{
+				if(err){
+					console.log(err)
+					test = false
+				}
+			}))
+			if(test)
+				res.status(200).send('insertion reussie')
+			else
+				res.status(200).send('erreur')
+                }
+        })
+})
+
+
 app.post('/api/setCours', (req,res) => {
         console.log('api/setCours')
         var T = req.headers
