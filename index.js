@@ -138,6 +138,23 @@ app.get('/api/getAllCreneaux',(req, res) => {
 	})
 })
 
+app.get('/api/getAllCreneauxByCoursID',(req, res) => {
+	console.log('api/getAllCreneauxByCoursID')
+	con.query('SELECT * from creneau WHERE coursID = ?',[req.headers.coursID], (err, rows) => {
+			if(err){
+					console.log(err)
+					res.status(500).send('erreur')
+			}
+			else{
+
+					rows = rows.map(v => Object.assign({}, v))
+					res.status(200).send(rows)
+			}
+	})
+})
+
+
+
 //séances
 app.get('/api/getAllSeances',(req, res) => {
 	console.log('api/getAllSeances')
