@@ -122,6 +122,39 @@ app.get('/api/getFullCompoByID', (req, res) => {
 	})
 })
 
+//creneaux
+app.get('/api/getAllCreneaux',(req, res) => {
+	console.log('api/getAllCreneaux')
+	con.query('SELECT * from creneau', (err, rows) => {
+			if(err){
+					console.log(err)
+					res.status(500).send('erreur')
+			}
+			else{
+
+					rows = rows.map(v => Object.assign({}, v))
+					res.status(200).send(rows)
+			}
+	})
+})
+
+//séances
+app.get('/api/getAllSeances',(req, res) => {
+	console.log('api/getAllSeances')
+	con.query('SELECT * FROM `seanceFormation` WHERE valide = 0', (err, rows) => {
+			if(err){
+					console.log(err)
+					res.status(500).send('erreur')
+			}
+			else{
+
+					rows = rows.map(v => Object.assign({}, v))
+					res.status(200).send(rows)
+			}
+	})
+})
+
+
 //cours
 app.get('/api/getAllCours',(req, res) => {
         console.log('api/getAllCours')
@@ -274,41 +307,7 @@ app.get('/api/getAllUsersByType', (req,res) => {
 	})
 })
 
-
-
-
-app.post('/api/login', (req,res) => {
-	console.log('api/login')
-	console.log(req.headers)
-	var sql = `SELECT * FROM utilisateur WHERE login = '${req.headers.login}' AND motDePasse = '${req.headers.mdp}'`
-
-	con.query(sql,(err, rows)=> {
-		if(err){
-			res.status(500).send(err)
-		}else{
-			var user = Object.assign({}, rows[0])
-			if(!user.login){
-				res.status(400).send(null)
-			}else{
-    				const token = jwt.sign({
-        				login: user.login,
-        				mdp: user.motDePasse,
-					role: user.typeID
-    				}, config.SECRET, { expiresIn: '4 Hours' })
-				res.status(200).json({
-							access_token : token,
-							utilisateurID : user.utilisateurID,
-							role : user.typeID
-							})
-			}
-		}
-	})
-})
-
-app.get('/api/protected', authenticateJWT,(req,res) => {
-	console.log(req.headers)
-	res.json({test:"si tu vois ce message, c'est que tu as l'acces"})
-})
+//POST
 
 
 app.post('/api/setCoursEtLinker', (req,res) => {
@@ -364,6 +363,33 @@ app.post('/api/setFiliereEtLinker', (req,res) => {
         })
 })
 
+app.post('/api/setSeance', (req,res) => {
+	console.log('api/setSeance')
+
+	var T = req.body
+
+	con.query('INSERT INTO `seanceFormation`(`seanceFormationID`, `estEffectue`, `dureeEffective`, `valide`, `commentaire`, `utilisateurID`, `creneauID`) VALUES (null,?,?,?,?,?,?)',[T.estEffectue,T.dureeEffective,T.valide,T.commentaire,T.utilisateurID,T.creneauID],(err, rows) => {
+			if(err){
+					console.log(err)
+					res.status(500).send('erreur')
+			}else{
+					res.status(200).send('insertion réussie')
+			}
+	})
+})
+
+app.post('/api/setCreneau', (req,res) => {
+	console.log('api/setCreneau')
+	var T = req.body
+	con.query('INSERT INTO `creneau`(`creneauID`, `dateHeure`, `duree`, `type`, `salle`, `coursID`) VALUES (null,?,?,?,?,?)',[T.dateHeure,T.duree,T.type,T.salle,T.coursID],(err, rows) => {
+			if(err){
+					console.log(err)
+					res.status(500).send('erreur')
+			}else{
+					res.status(200).send('insertion réussie')
+			}
+	})
+})
 
 app.post('/api/setCours', (req,res) => {
         console.log('api/setCours')
@@ -545,6 +571,21 @@ app.put('/api/updateCompoByID',(req,res) => {
 		}
 	})
 })
+
+app.put('/api/updateSeanceByID',(req,res) => {
+	console.log('api/updateSeanceByID')
+	var T = req.body
+
+	con.query('UPDATE `seanceFormation` SET `estEffectue`=?,`dureeEffective`=?,`valide`=?,`commentaire`=?,`utilisateurID`=?,`creneauID`=? WHERE seanceFormationID = ?', [T.estEffectue,T.dureeEffective,T.valide,T.commentaire,T.utilisateurID,T.creneauID,T.seanceFormationID], (err, rows) => {
+		if(err){
+			console.log(err)
+			res.status(500).send('erreur modification')
+		}else{
+			res.status(200).send(T)
+		}
+	})
+})
+
 app.put('/api/updateFiliereByID',(req,res) => {
 	console.log('api/updateFiliereByID')
 	var T = req.body
@@ -557,6 +598,43 @@ app.put('/api/updateFiliereByID',(req,res) => {
 		}
 	})
 })
+
+
+//JWT
+app.post('/api/login', (req,res) => {
+	console.log('api/login')
+	console.log(req.headers)
+	var sql = `SELECT * FROM utilisateur WHERE login = '${req.headers.login}' AND motDePasse = '${req.headers.mdp}'`
+
+	con.query(sql,(err, rows)=> {
+		if(err){
+			res.status(500).send(err)
+		}else{
+			var user = Object.assign({}, rows[0])
+			if(!user.login){
+				res.status(400).send(null)
+			}else{
+    				const token = jwt.sign({
+        				login: user.login,
+        				mdp: user.motDePasse,
+					role: user.typeID
+    				}, config.SECRET, { expiresIn: '4 Hours' })
+				res.status(200).json({
+							access_token : token,
+							utilisateurID : user.utilisateurID,
+							role : user.typeID
+							})
+			}
+		}
+	})
+})
+
+app.get('/api/protected', authenticateJWT,(req,res) => {
+	console.log(req.headers)
+	res.json({test:"si tu vois ce message, c'est que tu as l'acces"})
+})
+
+
 app.listen(port, () => {
 	console.log(`En attente de requetes sur le port : ${port}`)
 })
