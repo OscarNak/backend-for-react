@@ -603,6 +603,22 @@ app.put('/api/updateSeanceByID',(req,res) => {
 	})
 })
 
+app.put('/api/updateSeanceValideByID',(req,res) => {
+	console.log('api/updateSeanceValideByID')
+	var T = req.headers
+
+	con.query('UPDATE `seanceFormation` SET valide = 1 WHERE seanceFormationID = ?', [T.id], (err, rows) => {
+		if(err){
+			console.log(err)
+			res.status(500).send('erreur modification')
+		}else{
+			res.status(200).send(T)
+		}
+	})
+})
+
+
+
 app.put('/api/updateFiliereByID',(req,res) => {
 	console.log('api/updateFiliereByID')
 	var T = req.body
