@@ -306,6 +306,35 @@ app.get('/api/protected', authenticateJWT,(req,res) => {
 })
 
 
+app.post('/api/setCoursEtLinker', (req,res) => {
+	console.log('api/setCoursEtLinker')
+	var T = req.body
+	con.query('INSERT INTO `cours` (`coursID`, `intitule`) VALUES (NULL, ?)',[T.intitule],(err,resultat)=> {
+		if(err){
+			res.status(500).send(err)
+		}else{
+			var id = resultat.insertId
+			var test = true
+			T.filiere.map(v => con.query('INSERT INTO `coursFiliereLangueLinker` (`coursID`, `filiereLangueID`) VALUES (?,?)',[id,v],(err,rows)=>{
+				if(err){
+					console.log(err)
+					test = false
+				}
+			}))
+
+			T.utilisateur.map(v => con.query('INSERT INTO `coursUtilisateurLinker` (`coursID`, `utilisateurID`) VALUES (?,?)',[id,v],(err,rows)=>{
+				if(err){
+					console.log(err)
+					test = false
+				}
+			}))
+			if(test)
+				res.status(200).send('insertion reussie')
+			else
+				res.status(200).send('erreur')
+		}
+	})
+})
 
 app.post('/api/setFiliereEtLinker', (req,res) => {
         console.log('api/setFiliereEtLinker')
@@ -389,7 +418,6 @@ app.post('/api/setFiliere', (req,res) => {
 
 
 //DELETE
-
 app.delete('/api/deleteCoursByID', (req, res) => {
         console.log('api/deleteCoursByID')
         con.query('DELETE FROM cours WHERE coursID = ?',[req.headers.id], (err, rows) => {
@@ -440,6 +468,51 @@ app.delete('/api/deleteCompoByID', (req, res) => {
 })
 
 //PUT
+
+app.put('/api/updateCoursEtLinkerByID',(req,res)=>{
+	console.log('api/updateCoursEtLinkerByID')
+	var T = req.body
+	//modification du cours
+	con.query('UPDATE cours SET intitule = ? WHERE coursID = ?',[T.intitule,T.coursID],(err, rows)=>{
+		if(err){
+			res.status(500).send(err)
+		}else{
+			//supression dans coursFiliereLangueLinker quand courdID = coursID
+			var test = true
+			con.query('DELETE FROM coursFiliereLangueLinker WHERE coursID = ?',[T.coursID],(err, rows)=>{
+				if(err){
+					test = false
+					res.status(500).send(err)
+				}else{
+					//ajout des lignes dans coursFiliereLangueLinker
+					T.filiere.map(v => con.query('INSERT INTO coursFiliereLangueLinker (coursID, filiereLangueID) VALUES (?,?)',[T.coursID,v],(err,rows) => {
+						if(err) res.status(500).send(err)
+					}))
+				}
+		
+			})
+
+			//supression dans coursUtilisateurLinker quand coursID = coursID
+			con.query('DELETE FROM coursUtilisateurLinker WHERE coursID = ?',[T.coursID],(err, rows)=>{
+				if(err){
+					test = false
+					res.status(500).send(err)
+				}else{
+					//ajout des lignes dans coursFiliereLangueLinker
+					T.utilisateur.map(v => con.query('INSERT INTO coursUtilisateurLinker (coursID, utilisateurID) VALUES (?,?)',[T.coursID,v],(err,rows) => {
+						if(err) res.status(500).send(err)
+					}))
+				}
+			})
+
+			if(test)
+				res.status(200).send('modification réussie')
+			else
+				res.status(500).send('erreur')
+		}
+	})
+})
+
 app.put('/api/updateUserByID',(req, res) => {
 	console.log('api/updateUserByID')
 	var body = req.body
