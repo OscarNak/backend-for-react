@@ -156,9 +156,9 @@ app.get('/api/getAllCreneauxByCoursID',(req, res) => {
 
 
 //séances
-app.get('/api/getAllSeances',(req, res) => {
+app.get('/api/getAllSeancesByCreneauID',(req, res) => {
 	console.log('api/getAllSeances')
-	con.query('SELECT * FROM `seanceFormation` WHERE valide = 0', (err, rows) => {
+	con.query('SELECT * FROM `seanceFormation` WHERE valide = 0 AND creneauID = ?',[req.headers.id], (err, rows) => {
 			if(err){
 					console.log(err)
 					res.status(500).send('erreur')
