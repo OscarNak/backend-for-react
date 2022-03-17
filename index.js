@@ -26,6 +26,23 @@ const con = mysql.createConnection({
 })
 con.connect()
 
+//middleware
+const authenticateJWT = (req, res, next) => {
+    const authHeader = req.headers.authorization
+
+    if (authHeader) {
+        const token = authHeader.split(' ')[1]
+
+        try {
+		var decoded = jwt.verify(token, config.SECRET)
+        	next()
+	}catch(err){
+		res.status(500).send('token invalide')
+	}
+    } else {
+        res.sendStatus(401);
+    }
+}
 //GET
 
 //objets complexes
@@ -65,8 +82,8 @@ app.get('/api/getFullFiliereByID', (req, res) => {
 			tab.filiereLangueID = resultat.filiereLangueID
 			tab.code = resultat.code
 			tab.nom = resultat.nom
-
-			con.query('select * from composante where composanteID = ?',[id],(err, rows)=>{
+			tab.composanteID = resultat.composanteID
+			con.query('select * from composante where composanteID = ?',[tab.composanteID],(err, rows)=>{
 				tab.composante = Object.assign({}, rows[0])
 
 				con.query('SELECT cours.coursID, cours.intitule from cours INNER JOIN coursFiliereLangueLinker AS L ON cours.coursID = L.coursID INNER JOIN filiereLangue ON filiereLangue.filiereLangueID = L.filiereLangueID WHERE filiereLangue.filiereLangueID = ?',[id],(err, rows)=>{
@@ -106,7 +123,7 @@ app.get('/api/getFullCompoByID', (req, res) => {
 })
 
 //cours
-app.get('/api/getAllCours', (req, res) => {
+app.get('/api/getAllCours',(req, res) => {
         console.log('api/getAllCours')
         con.query('SELECT * from cours', (err, rows) => {
                 if(err){
@@ -257,7 +274,9 @@ app.get('/api/getAllUsersByType', (req,res) => {
 	})
 })
 
-//POST
+
+
+
 app.post('/api/login', (req,res) => {
 	console.log('api/login')
 	console.log(req.headers)
@@ -273,13 +292,19 @@ app.post('/api/login', (req,res) => {
 			}else{
     				const token = jwt.sign({
         				login: user.login,
-        				mdp: user.mdp
-    				}, config.SECRET, { expiresIn: '3 hours' })
+        				mdp: user.mdpi
+    				}, config.SECRET, { expiresIn: '60000' })
 				res.status(200).json({access_token : token})
 			}
 		}
 	})
 })
+
+app.get('/api/protected', authenticateJWT,(req,res) => {
+	console.log(req.headers)
+	res.json({test:"si tu vois ce message, c'est que tu as l'acces"})
+})
+
 
 
 app.post('/api/setFiliereEtLinker', (req,res) => {
