@@ -280,7 +280,7 @@ app.get('/api/getAllUsersByType', (req,res) => {
 app.post('/api/login', (req,res) => {
 	console.log('api/login')
 	console.log(req.headers)
-	var sql = `SELECT login, motDePasse AS mdp FROM utilisateur WHERE login = '${req.headers.login}' AND motDePasse = '${req.headers.mdp}'`
+	var sql = `SELECT * FROM utilisateur WHERE login = '${req.headers.login}' AND motDePasse = '${req.headers.mdp}'`
 
 	con.query(sql,(err, rows)=> {
 		if(err){
@@ -292,9 +292,14 @@ app.post('/api/login', (req,res) => {
 			}else{
     				const token = jwt.sign({
         				login: user.login,
-        				mdp: user.mdpi
-    				}, config.SECRET, { expiresIn: '60000' })
-				res.status(200).json({access_token : token})
+        				mdp: user.motDePasse,
+					role: user.typeID
+    				}, config.SECRET, { expiresIn: '4 Hours' })
+				res.status(200).json({
+							access_token : token,
+							utilisateurID : user.utilisateurID,
+							role : user.typeID
+							})
 			}
 		}
 	})
