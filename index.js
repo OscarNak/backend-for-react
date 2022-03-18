@@ -208,6 +208,22 @@ app.get('/api/getAllCreneauxByCoursID',(req, res) => {
 })
 
 
+app.get('/api/getCreneauPhotos',(req, res) => {
+	console.log('api/getCreneauPhotos')
+	var tab ={}
+	con.query('SELECT * from creneau WHERE creneauID = ?',[req.headers.id], (err, rows) => {
+		if(err){
+			return res.status(500).send(err)
+		}
+
+		tab.creneau = Object.assign({}, rows[0])
+		con.query('select * from photos where photos.creneauID = ?',[req.headers.id],(err,rows2)=>{
+			tab.photos = rows2.map(v => Object.assign({}, v))
+			console.log(tab)
+			res.status(200).send(tab)
+		})
+	})
+})
 
 //séances
 app.get('/api/getAllSeancesByCreneauID',(req, res) => {
