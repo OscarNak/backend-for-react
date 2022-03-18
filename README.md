@@ -25,11 +25,13 @@ L’objet JSON est sous la forme suivante :
 
 ```json
 {
-        "port":<port>,
+        "port":<port de la bdd>,
         "host":"<url bdd>",
         "user":"<user bdd>",
         "password":"<password bdd>",
-        "database":"<nom de la bdd>"
+        "database":"<nom de la bdd>",
+        "SECRET":"<chaine de caractère pour le cryptage par clef>",
+        "portNode":<port node>
 }
 ```
 
