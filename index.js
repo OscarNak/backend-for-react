@@ -78,6 +78,29 @@ const multi_upload = multer({
 
 //objets complexes
 
+app.get('/api/getDuree', (req, res) => {
+        console.log('api/getDuree')
+        var id = req.headers['id']
+        var tab = {}
+        con.query('select sum(dureeEffective) as sum from seanceFormation inner join creneau on seanceFormation.creneauID = creneau.creneauID where creneau.type = "CM"  and seanceFormation.utilisateurID = ? and seanceFormation.valide = 1',[id],(err,rows)=>{
+		if(err){ res.status(500).send(err)}
+		else{
+			var cm = Object.assign({}, rows[0])
+			tab.cm = cm.sum
+			con.query('select sum(dureeEffective) as sum from seanceFormation inner join creneau on seanceFormation.creneauID = creneau.creneauID where creneau.type = "TD"  and seanceFormation.utilisateurID = ? and seanceFormation.valide = 1',[id],(err,rows2)=>{
+				var td = Object.assign({}, rows2[0])
+				tab.td = td.sum
+				con.query('select sum(dureeEffective) as sum from seanceFormation inner join creneau on seanceFormation.creneauID = creneau.creneauID where creneau.type = "TP"  and seanceFormation.utilisateurID = ? and seanceFormation.valide = 1',[id],(err,rows3)=>{
+					var tp = Object.assign({}, rows3[0])
+					tab.tp = tp.sum
+					console.log(tab)
+					res.status(200).send(tab)
+				})
+			})
+		}
+	})
+})
+
 app.get('/api/getFullCoursByID', (req, res) => {
         console.log('api/getFullCoursByID')
         var id = req.headers['id']
