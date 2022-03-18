@@ -4,14 +4,15 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const multer = require('multer')
 
+//import config database
+var config = require('./config.json')
+
 
 const app = express()
-const port = 3000
+const port = config.portNode
 app.use(cors())
 app.use(express.static('uploads'))
 
-//import config database
-var config = require('./config.json')
 
 //config body-parser
 app.use(bodyParser.urlencoded({ extended: false }))
