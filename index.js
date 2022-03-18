@@ -176,6 +176,18 @@ app.get('/api/getFullCompoByID', (req, res) => {
 	})
 })
 
+
+app.get('/api/getFullSeanceByID', (req, res) => {
+	console.log('/api/getFullSeanceByID')
+	con.query(`SELECT seanceFormation.* , creneau.dateHeure, creneau.type, creneau.salle, cours.intitule FROM seanceFormation INNER JOIN creneau  ON seanceFormation.creneauID = creneau.creneauID INNER JOIN cours  ON creneau.coursID = cours.coursID WHERE estEffectue = 1 AND utilisateurID = ?`, [req.headers.id], (err, rows) => {
+		if(err)
+			return res.status(500).send(err)
+
+		rows = rows.map(v => Object.assign({}, v))
+		res.status(200).send(rows)
+	})
+})
+
 //creneaux
 app.get('/api/getAllCreneaux',(req, res) => {
 	console.log('api/getAllCreneaux')
