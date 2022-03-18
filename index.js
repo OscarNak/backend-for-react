@@ -2,18 +2,42 @@ const express = require('express')
 const jwt = require('jsonwebtoken')
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const multer = require('multer')
+
 
 const app = express()
 const port = 3000
 app.use(cors())
-
+app.use(express.static('uploads'))
 
 //import config database
 var config = require('./config.json')
 
 //config body-parser
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+
+//Configuration de l'emplacement et des noms de fichiers des imports
+const storage = multer.diskStorage({
+	destination: (req, file, cb) => {
+		cb(null, './uploads')
+	},
+	filename: (req, file, cb) => {
+		cb(null,Date.now() + "_" + file.originalname)
+	}
+})
+
+//Configuration des formats de fichiers acceptés
+const fileFilter = (req, file, cb) => {
+	if (file.mimetype == 'image/png' || file.mimetype == 'image/jpeg' || file.mimetype == 'image/jpg') {
+	  cb(null, true)
+	} else {
+	  cb(null, false)
+	  const err = new Error('Seuls les fichiers .jpg, .jpeg ou .png sont supportés')
+	  err.name = 'ExtensionError'
+	  return cb(err)
+	}
+}
 
 //MySQL
 const mysql = require('mysql')
@@ -26,7 +50,7 @@ const con = mysql.createConnection({
 })
 con.connect()
 
-//middleware
+//middleware jwt
 const authenticateJWT = (req, res, next) => {
     const authHeader = req.headers.authorization
 
@@ -43,6 +67,13 @@ const authenticateJWT = (req, res, next) => {
         res.sendStatus(401);
     }
 }
+
+//Middleware upload 
+const multi_upload = multer({
+	storage: storage,
+	fileFilter: fileFilter,
+}).array("importPhotos", 5)
+
 //GET
 
 //objets complexes
@@ -325,6 +356,66 @@ app.get('/api/getAllUsersByType', (req,res) => {
 })
 
 //POST
+
+app.post("/api/upload", (req, res) => {
+	multi_upload(req, res, function (err) {
+		if (err instanceof multer.MulterError) {
+			console.log(err)
+			res.status(500).send({error: { msg: `Erreur d'import multer : ${err.message}` }, }).end()
+		return
+		}
+		else if (err) {
+			//unknown error
+			if (err.name == 'ExtensionError') {
+				res.status(413).send({ error: { msg: `${err.message}` } }).end()
+			}
+			else {
+				res.status(500).send({ error: { msg: `Erreur d'import inconnue : ${err.message}` } }).end()
+			}
+			return;
+		}
+		console.log('api/upload')
+		var T = req.body
+		console.log(T)
+		var sqlInsertionCreneau = `INSERT INTO creneau(dateHeure, duree, type, salle, coursID) VALUES('${T.dateHeure}', ${T.duree}, '${T.type}', '${T.salle}', ${T.coursID})`
+		con.query(sqlInsertionCreneau, (err, rows)=>{
+			if(err){
+				console.log(err)
+				res.status(500).send(err)
+			} else{
+				console.log(T.dateHeure)
+				var sqlGetCreneauID = `SELECT creneauID FROM creneau WHERE dateHeure = '${T.dateHeure}'`
+				con.query(sqlGetCreneauID, (err, rows)=>{
+					if(err){
+						console.log(err);
+						res.status(500).send(err)
+					} else {
+						var creneauID = rows[0].creneauID
+						for(let file of req.files){
+							var sqlInsertionPhotos = `INSERT INTO photos (creneauID, pathPhoto) VALUES (${creneauID}, '${file.filename}')`
+							con.query(sqlInsertionPhotos, (err, rows) => {
+								if(err){
+									console.log(err)
+									res.status(500).send(err)
+								}
+							})
+						}
+						var sqlInsertionSeanceFormation = `INSERT INTO seanceFormation (estEffectue, dureeEffective, valide, commentaire, utilisateurID, creneauID) VALUES (true, ${T.duree}, false, "${T.commentaire}", ${T.utilisateurID},${creneauID})`
+						con.query(sqlInsertionSeanceFormation, (err, rows) => {
+							if(err){
+								console.log(err)
+								res.status(500).send(err)
+							} else {
+								res.status(200).send('Pointage effectué')
+							}
+						})
+					}
+				})
+			}
+		})
+	})
+})
+
 
 
 app.post('/api/setCoursEtLinker', (req,res) => {
